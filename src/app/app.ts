@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CustomerService } from './services/customer';
 import { Customer } from './models/customer.model';
+import { Orders } from './orders/orders';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, Orders],
   templateUrl: './app.html'
 })
 export class App implements OnInit {
