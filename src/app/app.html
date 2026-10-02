@@ -1,0 +1,291 @@
+<div class="min-h-screen bg-emerald-50/40 text-slate-800 pb-16 font-sans antialiased">
+  
+  <!-- Top Navigation Bar สไตล์ Food Delivery App -->
+  <nav class="bg-white/80 backdrop-blur-md border-b border-emerald-100 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+        </div>
+        <div>
+          <span class="text-xl font-black bg-gradient-to-r from-emerald-700 via-emerald-600 to-teal-600 bg-clip-text text-transparent">fastNorder</span>
+          <span class="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Customer Hub</span>
+        </div>
+      </div>
+
+      <button 
+        (click)="openAddModal()"
+        class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-medium text-sm rounded-xl shadow-lg shadow-emerald-600/25 transition-all">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+        <span>เพิ่มลูกค้าใหม่</span>
+      </button>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 space-y-8">
+    
+    <!-- Hero Header & Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div class="md:col-span-2 bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 rounded-3xl p-7 text-white shadow-xl shadow-emerald-900/10 flex flex-col justify-between relative overflow-hidden">
+        <div class="relative z-10 space-y-2">
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-emerald-100 text-xs font-semibold tracking-wide backdrop-blur-xs">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            Delivery & Customer Console
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">หน้าจัดการหมุดจัดส่งและข้อมูลลูกค้า</h1>
+          <p class="text-emerald-100 text-sm max-w-lg font-light leading-relaxed">
+            ค้นหาตำแหน่งจุดส่ง รัศมีพิกัดรอบตัวในระยะ 1 กม. และจัดการข้อมูลผู้สั่งซื้ออาหารได้อย่างแม่นยำ
+          </p>
+        </div>
+        <!-- ตกแต่งกราฟิกพื้นหลัง -->
+        <div class="absolute -right-8 -bottom-10 w-44 h-44 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+      </div>
+
+      <!-- กล่องสรุปจำนวนลูกค้า -->
+      <div class="bg-white rounded-3xl p-6 border border-emerald-100 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-600">ลูกค้าในระบบทั้งหมด</span>
+          <div class="p-2.5 bg-emerald-50 rounded-2xl text-emerald-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+          </div>
+        </div>
+        <div class="mt-4">
+          <div class="text-4xl font-extrabold text-slate-800 tracking-tight">{{ customers.length }}</div>
+          <span class="text-xs text-emerald-800 font-medium">พร้อมรับการจัดส่งด่วน</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search Section (ค้นหาชื่อ & พิกัด 1 กม.) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <!-- ค้นหาตามชื่อ -->
+      <div class="bg-white rounded-2xl p-5 border border-emerald-100 shadow-sm hover:border-emerald-200 transition-colors">
+        <div class="flex items-center gap-2 mb-3 text-slate-700 font-semibold text-sm">
+          <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <span>ค้นหาจากชื่อ หรือนามสกุล</span>
+        </div>
+        <div class="flex gap-2">
+          <div class="relative flex-1">
+            <input 
+              type="text" 
+              [(ngModel)]="searchKeyword" 
+              (keyup.enter)="onSearchByName()"
+              placeholder="พิมพ์ชื่อหรือนามสกุลลูกค้า..." 
+              class="w-full pl-3.5 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+            />
+          </div>
+          <button 
+            (click)="onSearchByName()" 
+            class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-sm font-medium rounded-xl transition shadow-xs">
+            ค้นหา
+          </button>
+        </div>
+      </div>
+
+      <!-- ค้นหาพิกัด 1 กม. -->
+      <div class="bg-white rounded-2xl p-5 border border-emerald-100 shadow-sm hover:border-emerald-200 transition-colors">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2 text-slate-700 font-semibold text-sm">
+            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            <span>เรดาร์พิกัดใกล้เคียง (ระยะ 1 กม.)</span>
+          </div>
+          <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Radius 1 km</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-5 gap-2">
+          <input 
+            type="number" 
+            step="any"
+            [(ngModel)]="searchLat" 
+            placeholder="Latitude (เช่น 16.24)" 
+            class="sm:col-span-2 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+          />
+          <input 
+            type="number" 
+            step="any"
+            [(ngModel)]="searchLng" 
+            placeholder="Longitude (เช่น 103.25)" 
+            class="sm:col-span-2 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+          />
+          <div class="sm:col-span-1 flex gap-1.5">
+            <button 
+              (click)="onSearchNearby()" 
+              class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-sm font-medium rounded-xl transition shadow-xs flex items-center justify-center">
+              ค้นหา
+            </button>
+            <button 
+              (click)="loadCustomers()" 
+              title="ล้างค่าและรีเซ็ตข้อมูล"
+              class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Table Section -->
+    <div class="bg-white rounded-3xl border border-emerald-100 shadow-sm overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <h3 class="font-bold text-slate-800 flex items-center gap-2">
+          <span>รายชื่อลูกค้าและจุดรับอาหาร</span>
+          <span class="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold">{{ customers.length }} รายการ</span>
+        </h3>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-600">
+          <thead class="bg-emerald-50/50 border-b border-emerald-100 text-emerald-950 font-bold uppercase text-[11px] tracking-wider">
+            <tr>
+              <th class="px-6 py-4">ID</th>
+              <th class="px-6 py-4">ลูกค้า</th>
+              <th class="px-6 py-4">เบอร์โทรติดต่อ</th>
+              <th class="px-6 py-4">พิกัดจัดส่ง (Lat, Lng)</th>
+              <th class="px-6 py-4 text-center">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr *ngFor="let item of customers" class="hover:bg-emerald-50/30 transition-colors">
+              <td class="px-6 py-4 font-mono font-semibold text-emerald-800 text-xs">
+                #{{ item.customer_id }}
+              </td>
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center text-xs">
+                    {{ item.first_name.charAt(0) }}
+                  </div>
+                  <div>
+                    <div class="font-semibold text-slate-900 leading-snug">{{ item.first_name }} {{ item.last_name }}</div>
+                    <div class="text-[11px] text-slate-600">Active Member</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-6 py-4 font-mono text-xs">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200">
+                  <svg class="w-3.5 h-3.5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                  </svg>
+                  {{ item.phone || 'ไม่มีเบอร์' }}
+                </span>
+              </td>
+              <td class="px-6 py-4">
+                <div class="inline-flex items-center gap-1 text-xs font-mono bg-emerald-50 text-emerald-800 px-2.5 py-1 rounded-lg border border-emerald-100">
+                  <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                  </svg>
+                  <span>{{ item.latitude }}, {{ item.longitude }}</span>
+                </div>
+              </td>
+              <td class="px-6 py-4 text-center">
+                <div class="inline-flex items-center gap-1.5">
+                  <button 
+                    (click)="openEditModal(item)"
+                    class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg text-xs font-semibold transition active:scale-95">
+                    แก้ไข
+                  </button>
+                  <button 
+                    (click)="deleteCustomer(item.customer_id)"
+                    class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-semibold transition active:scale-95">
+                    ลบ
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="customers.length === 0 && !isLoading">
+              <td colspan="5" class="px-6 py-14 text-center">
+                <div class="flex flex-col items-center justify-center text-slate-600 space-y-2">
+                  <svg class="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                  </svg>
+                  <p class="text-sm font-medium">ไม่พบข้อมูลลูกค้าในระบบ</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <!-- Order Management -->
+    <app-orders></app-orders>
+  </main>
+
+  <!-- Modal สำหรับ เพิ่ม / แก้ไข ลูกค้า -->
+  <div *ngIf="isModalOpen" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-5 border border-slate-100">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+          {{ isEditing ? 'แก้ไขข้อมูลลูกค้า' : 'เพิ่มลูกค้าใหม่' }}
+        </h3>
+        <button (click)="closeModal()" class="text-slate-400 hover:text-slate-600 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      
+      <form (ngSubmit)="saveCustomer()" class="space-y-4">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5">ชื่อจริง</label>
+            <input type="text" [(ngModel)]="currentCustomer.first_name" name="first_name" required
+                   class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none"/>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1.5">นามสกุล</label>
+            <input type="text" [(ngModel)]="currentCustomer.last_name" name="last_name" required
+                   class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none"/>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">เบอร์โทรศัพท์</label>
+          <input type="text" [(ngModel)]="currentCustomer.phone" name="phone" placeholder="08X-XXX-XXXX"
+                 class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none"/>
+        </div>
+
+        <div class="p-3.5 bg-emerald-50/60 rounded-2xl border border-emerald-100 space-y-3">
+          <span class="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            </svg>
+            พิกัดหมุดจัดส่ง (Delivery Pin)
+          </span>
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Latitude</label>
+              <input type="number" step="any" [(ngModel)]="currentCustomer.latitude" name="latitude" required placeholder="16.XXXX"
+                     class="w-full px-3 py-2 bg-white border border-emerald-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none"/>
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Longitude</label>
+              <input type="number" step="any" [(ngModel)]="currentCustomer.longitude" name="longitude" required placeholder="103.XXXX"
+                     class="w-full px-3 py-2 bg-white border border-emerald-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none"/>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" (click)="closeModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-xl transition">
+            ยกเลิก
+          </button>
+          <button type="submit" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-sm font-semibold rounded-xl shadow-md shadow-emerald-600/20 transition">
+            บันทึกข้อมูล
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
