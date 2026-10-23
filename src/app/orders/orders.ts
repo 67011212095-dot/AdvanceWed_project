@@ -6,9 +6,18 @@ import { Customer } from '../models/customer.model';
 import { CustomerService } from '../services/customer';
 import { Order } from './order.model';
 import { OrderService } from './order.service';
+import { DispatchService, KITCHEN_LOCATION } from '../services/dispatch.service';
+
+export interface LandmarkPreset {
+    name: string;
+    category: string;
+    lat: number;
+    lng: number;
+}
 
 @Component({
     selector: 'app-orders',
+    standalone: true,
     imports: [CommonModule, DatePipe, FormsModule],
     templateUrl: './orders.html',
     styleUrl: './orders.css',
@@ -17,9 +26,26 @@ import { OrderService } from './order.service';
 export class Orders implements OnInit {
     private readonly orderService = inject(OrderService);
     private readonly customerService = inject(CustomerService);
+    private readonly dispatchService = inject(DispatchService);
 
-    readonly orders = signal<Order[]>([]);
+    readonly orders = this.orderService.orders;
     readonly customers = signal<Customer[]>([]);
+
+    readonly MSU_LANDMARKS: LandmarkPreset[] = [
+        { name: 'ครัวร้านเดลิเวอรี (จุดเริ่มต้นส่ง)', category: 'ร้านอาหาร', lat: 16.2468, lng: 103.2519 },
+        { name: 'หอพักตักศิลา (หน้าป้าย มมส.)', category: 'หอพัก', lat: 16.2492, lng: 103.2541 },
+        { name: 'คณะวิทยาการสารสนเทศ (IT)', category: 'มหาวิทยาลัย', lat: 16.2451, lng: 103.2560 },
+        { name: 'คณะวิศวกรรมศาสตร์', category: 'มหาวิทยาลัย', lat: 16.2478, lng: 103.2485 },
+        { name: 'อาคารราชนครินทร์ (RN)', category: 'มหาวิทยาลัย', lat: 16.2510, lng: 103.2530 },
+        { name: 'หอพักอินเตอร์', category: 'หอพัก', lat: 16.2435, lng: 103.2502 },
+        { name: 'หอพักเจริญสุข', category: 'หอพัก', lat: 16.2420, lng: 103.2575 },
+        { name: 'คอนโดเดอะแคปิตอล', category: 'คอนโด', lat: 16.2440, lng: 103.2450 },
+        { name: 'ศูนย์อาหารขามเรียง', category: 'ชุมชน', lat: 16.2415, lng: 103.2525 }
+    ];
+
+    readonly selectedLandmark = signal<string>('');
+    readonly showManualCoords = signal<boolean>(false);
+
     readonly displayedOrders = computed(() => {
         const orders = this.orders();
         const latitude = this.searchLatitude();
@@ -33,9 +59,11 @@ export class Orders implements OnInit {
             this.getDistanceInKm(latitude, longitude, order.delivery_lat, order.delivery_lng) <= 2
         );
     });
+
     readonly canGenerateSamples = computed(() =>
         this.customers().some((customer) => customer.customer_id !== undefined)
     );
+
     readonly isLoading = signal(false);
     readonly isSaving = signal(false);
     readonly isModalOpen = signal(false);
@@ -64,9 +92,11 @@ export class Orders implements OnInit {
         return {
             customer_id: 0,
             order_date: this.getTodayDate(),
+            box_quantity: 1,
             box_count: 1,
-            delivery_lat: 0,
-            delivery_lng: 0
+            order_status: 'pending',
+            delivery_lat: KITCHEN_LOCATION.lat,
+            delivery_lng: KITCHEN_LOCATION.lng
         };
     }
 
@@ -74,8 +104,7 @@ export class Orders implements OnInit {
         this.isLoading.set(true);
         this.errorMessage.set('');
         this.orderService.getOrders().subscribe({
-            next: (orders) => {
-                this.orders.set(orders);
+            next: () => {
                 this.isLoading.set(false);
             },
             error: () => {
@@ -91,7 +120,14 @@ export class Orders implements OnInit {
     }
 
     setCustomerId(value: number | null): void {
-        this.currentOrder.update((order) => ({ ...order, customer_id: value ?? 0 }));
+        const custId = value ?? 0;
+        const customer = this.customers().find((c) => c.customer_id === custId);
+        this.currentOrder.update((order) => ({
+            ...order,
+            customer_id: custId,
+            delivery_lat: customer ? customer.latitude : order.delivery_lat,
+            delivery_lng: customer ? customer.longitude : order.delivery_lng
+        }));
     }
 
     setOrderDate(value: string): void {
@@ -106,8 +142,13 @@ export class Orders implements OnInit {
         this.currentOrder.update((order) => ({ ...order, delivery_lng: value ?? 0 }));
     }
 
-    setBoxCount(value: number | null): void {
-        this.currentOrder.update((order) => ({ ...order, box_count: value ?? 1 }));
+    setBoxQuantity(value: number | null): void {
+        const val = value ?? 1;
+        this.currentOrder.update((order) => ({
+            ...order,
+            box_quantity: val,
+            box_count: val
+        }));
     }
 
     setSearchLatitude(value: number | null): void {
@@ -118,11 +159,52 @@ export class Orders implements OnInit {
         this.searchLongitude.set(value);
     }
 
+    onSelectLandmark(landmarkName: string): void {
+        const item = this.MSU_LANDMARKS.find((l) => l.name === landmarkName);
+        if (item) {
+            this.searchLatitude.set(item.lat);
+            this.searchLongitude.set(item.lng);
+            this.selectedLandmark.set(item.name);
+            this.applyNearbyFilter();
+        }
+    }
+
+    useShopLocation(): void {
+        this.searchLatitude.set(KITCHEN_LOCATION.lat);
+        this.searchLongitude.set(KITCHEN_LOCATION.lng);
+        this.selectedLandmark.set('ครัวร้านเดลิเวอรี (จุดเริ่มต้นส่ง)');
+        this.applyNearbyFilter();
+    }
+
+    useCurrentLocation(): void {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const lat = Math.round(pos.coords.latitude * 10000) / 10000;
+                    const lng = Math.round(pos.coords.longitude * 10000) / 10000;
+                    this.searchLatitude.set(lat);
+                    this.searchLongitude.set(lng);
+                    this.selectedLandmark.set('พิกัดปัจจุบันของคุณ');
+                    this.applyNearbyFilter();
+                },
+                () => {
+                    this.errorMessage.set('ไม่สามารถอ่านพิกัด GPS ได้ กรุณาเลือกสถานที่สำคัญ');
+                }
+            );
+        } else {
+            this.errorMessage.set('เบราว์เซอร์ไม่รองรับ GPS');
+        }
+    }
+
+    toggleManualCoords(): void {
+        this.showManualCoords.update((v) => !v);
+    }
+
     applyNearbyFilter(): void {
         const latitude = this.searchLatitude();
         const longitude = this.searchLongitude();
         if (latitude === null || longitude === null || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
-            this.errorMessage.set('กรุณาระบุพิกัดละติจูดและลองจิจูดให้ถูกต้อง');
+            this.errorMessage.set('กรุณาเลือกสถานที่ หรือระบุพิกัดละติจูดและลองจิจูดให้ถูกต้อง');
             return;
         }
 
@@ -132,6 +214,9 @@ export class Orders implements OnInit {
 
     clearNearbyFilter(): void {
         this.isNearbyFilterActive.set(false);
+        this.searchLatitude.set(null);
+        this.searchLongitude.set(null);
+        this.selectedLandmark.set('');
         this.errorMessage.set('');
     }
 
@@ -170,7 +255,12 @@ export class Orders implements OnInit {
 
     openEditModal(order: Order): void {
         this.isEditing.set(true);
-        this.currentOrder.set({ ...order, order_date: order.order_date.slice(0, 10) });
+        this.currentOrder.set({
+            ...order,
+            box_quantity: order.box_quantity || order.box_count || 1,
+            box_count: order.box_quantity || order.box_count || 1,
+            order_date: order.order_date.slice(0, 10)
+        });
         this.isModalOpen.set(true);
     }
 
@@ -180,18 +270,25 @@ export class Orders implements OnInit {
 
     saveOrder(): void {
         const order = this.currentOrder();
+        const boxQty = order.box_quantity || order.box_count || 1;
         if (!order.customer_id) {
             this.errorMessage.set('กรุณาเลือกลูกค้าสำหรับ Order');
             return;
         }
-        if (!Number.isInteger(order.box_count) || order.box_count < 1) {
-            this.errorMessage.set('จำนวนกล่องต้องเป็นจำนวนเต็มตั้งแต่ 1 กล่องขึ้นไป');
+        if (!Number.isInteger(boxQty) || boxQty < 1 || boxQty > 3) {
+            this.errorMessage.set('เงื่อนไขของร้าน: จำนวนข้าวกล่องต้องอยู่ระหว่าง 1 ถึง 3 กล่องเท่านั้น');
             return;
         }
 
+        const normalizedOrder: Order = {
+            ...order,
+            box_quantity: boxQty,
+            box_count: boxQty
+        };
+
         const request = this.isEditing() && order.order_id
-            ? this.orderService.updateOrder(order.order_id, order)
-            : this.orderService.addOrder(order);
+            ? this.orderService.updateOrder(order.order_id, normalizedOrder)
+            : this.orderService.addOrder(normalizedOrder);
 
         this.isSaving.set(true);
         this.errorMessage.set('');
@@ -217,13 +314,17 @@ export class Orders implements OnInit {
             return;
         }
 
+        // สุ่ม 20 - 30 รายการตามโจทย์ (แต่ละรายการสั่งไม่เกิน 3 กล่อง)
         const numberOfOrders = 20 + Math.floor(Math.random() * 11);
         const sampleOrders: Order[] = Array.from({ length: numberOfOrders }, () => {
             const customer = customers[Math.floor(Math.random() * customers.length)];
+            const boxQty = 1 + Math.floor(Math.random() * 3); // 1-3 กล่อง
             return {
                 customer_id: customer.customer_id,
                 order_date: this.getRandomOrderDate(),
-                box_count: 1 + Math.floor(Math.random() * 10),
+                box_quantity: boxQty,
+                box_count: boxQty,
+                order_status: 'pending',
                 delivery_lat: customer.latitude,
                 delivery_lng: customer.longitude
             };

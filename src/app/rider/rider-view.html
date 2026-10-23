@@ -1,0 +1,269 @@
+<div class="max-w-2xl mx-auto space-y-5 pb-12">
+
+  <!-- Mobile Top Search Card -->
+  <div class="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-4">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-sm shadow-xs">
+          <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-base font-black text-slate-900 leading-tight">หน้าจอสำหรับไรเดอร์ (Rider Job Portal)</h2>
+          <p class="text-[11px] text-slate-500">กรอกเลขใบงานเพื่อตรวจสอบกล่องข้าวและเส้นทางส่ง</p>
+        </div>
+      </div>
+      <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-800 border border-slate-200">
+        Mobile Ready
+      </span>
+    </div>
+
+    <!-- Search Form -->
+    <div class="flex gap-2">
+      <div class="relative flex-1">
+        <input 
+          type="number" 
+          [(ngModel)]="searchJobInput" 
+          (keyup.enter)="lookupJob()"
+          placeholder="กรอกเลขใบงาน เช่น 1001, 1002..." 
+          class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none"
+        />
+      </div>
+      <button 
+        type="button" 
+        (click)="lookupJob()"
+        class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-sm rounded-xl transition shadow-xs">
+        ค้นหา
+      </button>
+    </div>
+
+    <!-- Quick select available jobs -->
+    @if (dispatchService.deliveryJobs().length > 0) {
+    <div class="space-y-1.5 pt-1">
+      <span class="text-[11px] text-slate-600 font-semibold block">หรือแตะเลือกใบงานที่มีอยู่ในระบบ:</span>
+      <div class="flex flex-wrap gap-1.5">
+        @for (job of dispatchService.deliveryJobs(); track job.job_id) {
+        <button 
+          type="button"
+          (click)="selectJob(job)"
+          class="px-2.5 py-1 rounded-lg text-xs font-mono font-bold border transition-all"
+          [ngClass]="currentJob()?.job_id === job.job_id ? 'bg-slate-900 text-white border-slate-900 shadow-xs' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'">
+          #{{ job.job_id }}
+        </button>
+        }
+      </div>
+    </div>
+    }
+  </div>
+
+  <!-- Job Details Content -->
+  @if (currentJob(); as job) {
+  <div class="space-y-4">
+
+    <!-- Rider Profile & Mission Card -->
+    <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden space-y-4">
+      <div class="relative z-10 flex items-start justify-between">
+        <div>
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-[11px] font-mono font-bold text-emerald-300 backdrop-blur-xs">
+            <span>ใบงานเลขที่ #{{ job.job_id }}</span>
+          </div>
+          <h3 class="text-xl sm:text-2xl font-black mt-1 text-white flex items-center gap-2">
+            <span>{{ job.rider_name }}</span>
+            <span class="w-3.5 h-3.5 rounded-full inline-block border-2 border-white shadow-xs" [style.backgroundColor]="job.route_color"></span>
+          </h3>
+        </div>
+
+        <div class="text-right">
+          <span class="text-[10px] text-slate-400 block uppercase">ค่าจ้างรอบนี้</span>
+          <span class="text-2xl font-black text-amber-400 font-mono">{{ job.total_cost }}฿</span>
+        </div>
+      </div>
+
+      <!-- สรุปสิ่งที่ต้องหยิบจากร้าน (Highlight เด่นชัดตามโจทย์) -->
+      <div class="relative z-10 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 space-y-2">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+              <svg class="w-5 h-5 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+              </svg>
+            </div>
+            <div>
+              <div class="text-xs text-slate-300 font-medium">สิ่งที่ต้องหยิบจากครัวท้ายรถ:</div>
+              <div class="text-lg font-black text-white">
+                หยิบข้าวกล่องไปทั้งหมด <span class="text-amber-300 underline font-mono text-xl">{{ job.total_boxes }} กล่อง</span>
+              </div>
+            </div>
+          </div>
+          <span class="text-xs px-2.5 py-1 rounded-full bg-amber-400/20 text-amber-300 font-bold border border-amber-400/30">
+            สูงสุด ≤10 กล่อง
+          </span>
+        </div>
+
+        <div class="flex items-center justify-between text-xs pt-2 border-t border-white/10 text-slate-300">
+          <span>เริ่มออกส่ง: 11:30 น.</span>
+          <span class="font-bold text-emerald-300">✓ ถึงจุดสุดท้ายก่อน 12:30 น.</span>
+        </div>
+      </div>
+
+      <!-- แถบความคืบหน้าการส่ง -->
+      <div class="relative z-10 space-y-1">
+        <div class="flex items-center justify-between text-xs text-slate-300">
+          <span>ความคืบหน้าการจัดส่ง</span>
+          <span class="font-bold font-mono">{{ getCompletedStopsCount() }} / {{ job.orders.length }} จุด</span>
+        </div>
+        <div class="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+          <div class="h-full bg-emerald-400 rounded-full transition-all duration-300"
+               [style.width.%]="(getCompletedStopsCount() / job.orders.length) * 100"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ลำดับจุดส่ง (Step-by-Step Delivery Route) -->
+    <div class="space-y-3">
+      <div class="flex items-center justify-between px-1">
+        <h4 class="font-black text-slate-800 text-sm flex items-center gap-1.5">
+          <span>แผนการเดินทางและลำดับจุดส่ง</span>
+          <span class="text-xs text-slate-500 font-normal">({{ job.orders.length }} จุดหมาย)</span>
+        </h4>
+        <span class="text-xs text-slate-500">ระยะทางรวม {{ job.total_distance }} กม.</span>
+      </div>
+
+      <!-- สเต็ป 0: จุดรับอาหารที่ครัว -->
+      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold">
+            <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+          </div>
+          <div>
+            <div class="text-xs font-bold text-slate-900">{{ kitchenLocation.name }}</div>
+            <div class="text-[11px] text-slate-500">เวลารับอาหาร: 11:30 น. (ตรวจสอบข้าวกล่อง {{ job.total_boxes }} กล่อง)</div>
+          </div>
+        </div>
+        <span class="text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-bold border border-slate-200">
+          จุดเริ่มต้น
+        </span>
+      </div>
+
+      <!-- สเต็ป 1, 2, 3: จุดส่งลูกค้า -->
+      @for (order of job.orders; track order.order_id) {
+      <div class="bg-white rounded-2xl p-5 border shadow-xs space-y-3 transition-all"
+           [ngClass]="order.order_status === 'delivered' ? 'border-emerald-200 bg-emerald-50/20 opacity-80' : 'border-slate-200 hover:border-slate-300'">
+        
+        <div class="flex items-start justify-between gap-2">
+          <div class="flex items-start gap-3">
+            <!-- หมายเลขลำดับจุดส่ง -->
+            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-sm shrink-0 shadow-xs"
+                 [style.backgroundColor]="job.route_color">
+              {{ order.stop_sequence }}
+            </div>
+
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">จุดส่งที่ {{ order.stop_sequence }}</span>
+                @if (order.order_status === 'delivered') {
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">
+                  ✓ ส่งสำเร็จแล้ว
+                </span>
+                }
+              </div>
+              <h5 class="text-base font-black text-slate-900 mt-0.5">{{ order.customer_name }}</h5>
+              <div class="text-xs font-mono text-slate-500 mt-0.5">
+                พิกัด: {{ order.delivery_lat }}, {{ order.delivery_lng }}
+              </div>
+            </div>
+          </div>
+
+          <!-- จำนวนกล่องที่ต้องส่ง ณ จุดนี้ -->
+          <div class="text-right">
+            <span class="inline-block px-3 py-1 rounded-xl bg-slate-100 text-slate-800 text-xs font-black border border-slate-200">
+              ส่ง {{ order.box_quantity }} กล่อง
+            </span>
+          </div>
+        </div>
+
+        <!-- เบอร์โทรและปุ่มกดโทรออก -->
+        @if (order.customer_phone) {
+        <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl text-xs">
+          <span class="text-slate-500">เบอร์โทรศัพท์ลูกค้า:</span>
+          <a [href]="'tel:' + order.customer_phone" class="font-mono font-bold text-emerald-700 hover:underline flex items-center gap-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+            </svg>
+            <span>{{ order.customer_phone }}</span>
+          </a>
+        </div>
+        }
+
+        <!-- ปุ่มกดเปิด Google Maps นำทาง & ปุ่มกดส่งสำเร็จ (ตามโจทย์เป๊ะ) -->
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <!-- ปุ่มเปิด Google Maps -->
+          <a 
+            [href]="getGoogleMapsUrl(order.delivery_lat, order.delivery_lng)" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            class="inline-flex items-center justify-center gap-1.5 py-2.5 px-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition active:scale-95 text-center">
+            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            <span>เปิด Google Maps นำทาง</span>
+          </a>
+
+          <!-- ปุ่มอัปเดตสถานะ ส่งสำเร็จ -->
+          @if (order.order_status !== 'delivered') {
+          <button 
+            type="button" 
+            (click)="markDelivered(order)"
+            class="inline-flex items-center justify-center gap-1.5 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition active:scale-95">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            <span>ส่งสำเร็จแล้ว</span>
+          </button>
+          } @else {
+          <div class="inline-flex items-center justify-center gap-1 py-2.5 px-3 bg-emerald-100 text-emerald-800 font-bold text-xs rounded-xl">
+            <span>✓ ส่งเรียบร้อย</span>
+          </div>
+          }
+        </div>
+
+      </div>
+      }
+    </div>
+
+    <!-- เมื่อส่งครบทุกจุด -->
+    @if (getCompletedStopsCount() === job.orders.length) {
+    <div class="bg-slate-900 rounded-3xl p-6 text-white text-center space-y-2 shadow-lg border border-slate-800">
+      <div class="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center mx-auto">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+      <h4 class="text-lg font-black">จัดส่งครบทุกจุดเรียบร้อยแล้ว</h4>
+      <p class="text-xs text-slate-300">
+        ยอดค่าจ้างรอบนี้ {{ job.total_cost }} บาท ได้รับการบันทึกเข้าระบบเรียบร้อยแล้ว
+      </p>
+    </div>
+    }
+
+  </div>
+  } @else {
+  <!-- ไม่พบใบงาน -->
+  <div class="bg-white rounded-3xl p-10 text-center border border-slate-200 shadow-sm space-y-3">
+    <div class="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+    </div>
+    <h3 class="text-base font-bold text-slate-800">ไม่พบข้อมูลใบงาน</h3>
+    <p class="text-xs text-slate-500 max-w-sm mx-auto">
+      กรุณาตรวจสอบเลขใบงานอีกครั้ง หรือให้เจ้าของร้านกด "จัดเส้นทางอัตโนมัติ" ในหน้าจอหลักก่อนจึงจะมีใบงานปรากฏ
+    </p>
+  </div>
+  }
+
+</div>

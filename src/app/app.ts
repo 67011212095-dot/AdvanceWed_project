@@ -1,34 +1,73 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CustomerService } from './services/customer';
 import { Customer } from './models/customer.model';
+import { Order } from './models/order.model';
+import { OrderService } from './orders/order.service';
+import { DispatchService, KITCHEN_LOCATION } from './services/dispatch.service';
 import { Orders } from './orders/orders';
+import { DispatchConsole } from './dispatch/dispatch-console';
+import { RiderView } from './rider/rider-view';
+
+export interface LandmarkPreset {
+  name: string;
+  category: string;
+  lat: number;
+  lng: number;
+}
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule, Orders],
+  imports: [CommonModule, FormsModule, Orders, DispatchConsole, RiderView],
   templateUrl: './app.html'
 })
 export class App implements OnInit {
+  private readonly customerService = inject(CustomerService);
+  private readonly orderService = inject(OrderService);
+  readonly dispatchService = inject(DispatchService);
+
+  // การนำทางหลัก
+  activeRole: 'owner' | 'rider' = 'owner';
+  ownerTab: 'dispatch' | 'orders' | 'customers' = 'dispatch';
+  selectedRiderJobId: number | null = null;
+
+  // ข้อมูลลูกค้าและออเดอร์
   customers: Customer[] = [];
+  get orders(): Order[] {
+    return this.orderService.orders();
+  }
   isLoading: boolean = false;
 
-  // ฟิลด์สำหรับการค้นหา
+  // ฟิลด์สำหรับการค้นหาลูกค้า
   searchKeyword: string = '';
   searchLat: number | null = null;
   searchLng: number | null = null;
+  selectedLandmark: string = '';
+  showManualCoords: boolean = false;
 
-  // จัดการ Popup Modal เพิ่ม/แก้ไข
+  // รายการสถานที่สำคัญรอบ ม.มหาสารคาม สำหรับเรดาร์ 1 กม.
+  readonly MSU_LANDMARKS: LandmarkPreset[] = [
+    { name: 'ครัวร้านเดลิเวอรี (จุดเริ่มต้นส่ง)', category: 'ร้านอาหาร', lat: 16.2468, lng: 103.2519 },
+    { name: 'หอพักตักศิลา (หน้าป้าย มมส.)', category: 'หอพัก', lat: 16.2492, lng: 103.2541 },
+    { name: 'คณะวิทยาการสารสนเทศ (IT)', category: 'มหาวิทยาลัย', lat: 16.2451, lng: 103.2560 },
+    { name: 'คณะวิศวกรรมศาสตร์', category: 'มหาวิทยาลัย', lat: 16.2478, lng: 103.2485 },
+    { name: 'อาคารราชนครินทร์ (RN)', category: 'มหาวิทยาลัย', lat: 16.2510, lng: 103.2530 },
+    { name: 'หอพักอินเตอร์', category: 'หอพัก', lat: 16.2435, lng: 103.2502 },
+    { name: 'หอพักเจริญสุข', category: 'หอพัก', lat: 16.2420, lng: 103.2575 },
+    { name: 'คอนโดเดอะแคปิตอล', category: 'คอนโด', lat: 16.2440, lng: 103.2450 },
+    { name: 'ศูนย์อาหารขามเรียง', category: 'ชุมชน', lat: 16.2415, lng: 103.2525 }
+  ];
+
+  // จัดการ Popup Modal เพิ่ม/แก้ไขลูกค้า
   isModalOpen: boolean = false;
   isEditing: boolean = false;
   currentCustomer: Customer = this.getEmptyCustomer();
 
-  constructor(private customerService: CustomerService) {}
-
   ngOnInit(): void {
     this.loadCustomers();
+    this.loadOrders();
   }
 
   getEmptyCustomer(): Customer {
@@ -36,8 +75,8 @@ export class App implements OnInit {
       first_name: '',
       last_name: '',
       phone: '',
-      latitude: 0,
-      longitude: 0
+      latitude: KITCHEN_LOCATION.lat,
+      longitude: KITCHEN_LOCATION.lng
     };
   }
 
@@ -56,7 +95,23 @@ export class App implements OnInit {
     });
   }
 
-  // ค้นหาจากส่วนหนึ่งของชื่อ หรือนามสกุล
+  // ดึงข้อมูลออเดอร์ทั้งหมด
+  loadOrders(): void {
+    this.orderService.getOrders().subscribe({
+      error: (err) => {
+        console.error('API Error:', err);
+      }
+    });
+  }
+
+  // สลับไปยังหน้าจอไรเดอร์พร้อมเลือกใบงาน
+  onViewRiderJob(jobId: number): void {
+    this.selectedRiderJobId = jobId;
+    this.activeRole = 'rider';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ค้นหาลูกค้าจากส่วนหนึ่งของชื่อ หรือนามสกุล
   onSearchByName(): void {
     if (!this.searchKeyword.trim()) {
       this.loadCustomers();
@@ -75,10 +130,50 @@ export class App implements OnInit {
     });
   }
 
+  // เลือกสถานที่สำคัญจาก Dropdown
+  onSelectLandmark(landmarkName: string): void {
+    const item = this.MSU_LANDMARKS.find((l) => l.name === landmarkName);
+    if (item) {
+      this.searchLat = item.lat;
+      this.searchLng = item.lng;
+      this.selectedLandmark = item.name;
+      this.onSearchNearby();
+    }
+  }
+
+  // ปุ่มลัด: ใช้ตำแหน่งครัวร้าน
+  useShopLocation(): void {
+    this.searchLat = KITCHEN_LOCATION.lat;
+    this.searchLng = KITCHEN_LOCATION.lng;
+    this.selectedLandmark = 'ครัวร้านเดลิเวอรี (จุดเริ่มต้นส่ง)';
+    this.onSearchNearby();
+  }
+
+  // ปุ่มลัด: ใช้ตำแหน่ง GPS ปัจจุบัน
+  useCurrentLocation(): void {
+    if (navigator.geolocation) {
+      this.isLoading = true;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          this.searchLat = Math.round(pos.coords.latitude * 10000) / 10000;
+          this.searchLng = Math.round(pos.coords.longitude * 10000) / 10000;
+          this.selectedLandmark = 'พิกัดปัจจุบันของคุณ';
+          this.onSearchNearby();
+        },
+        () => {
+          this.isLoading = false;
+          alert('ไม่สามารถอ่านพิกัด GPS ได้ กรุณาเลือกจากสถานที่สำคัญรอบ มมส.');
+        }
+      );
+    } else {
+      alert('เบราว์เซอร์ไม่รองรับ Geolocation');
+    }
+  }
+
   // ค้นหาลูกค้าในระยะ 1 กิโลเมตรจากพิกัด
   onSearchNearby(): void {
     if (this.searchLat === null || this.searchLng === null) {
-      alert('กรุณากรอกทั้ง Latitude และ Longitude ให้ครบถ้วน');
+      alert('กรุณาเลือกสถานที่หรือระบุพิกัด Latitude และ Longitude');
       return;
     }
     this.isLoading = true;
@@ -94,14 +189,22 @@ export class App implements OnInit {
     });
   }
 
-  // เปิด Modal เพิ่มข้อมูล
+  // ล้างค่าเรดาร์ค้นหา
+  clearNearbySearch(): void {
+    this.searchLat = null;
+    this.searchLng = null;
+    this.selectedLandmark = '';
+    this.loadCustomers();
+  }
+
+  // เปิด Modal เพิ่มข้อมูลลูกค้า
   openAddModal(): void {
     this.isEditing = false;
     this.currentCustomer = this.getEmptyCustomer();
     this.isModalOpen = true;
   }
 
-  // เปิด Modal แก้ไขข้อมูล
+  // เปิด Modal แก้ไขข้อมูลลูกค้า
   openEditModal(customer: Customer): void {
     this.isEditing = true;
     this.currentCustomer = { ...customer };

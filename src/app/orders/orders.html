@@ -1,95 +1,222 @@
-<section class="bg-white rounded-3xl border border-emerald-100 shadow-sm overflow-hidden">
+<section class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
     <div class="px-6 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4">
         <div>
-            <h2 class="font-bold text-slate-800">รายการ Order</h2>
-            <p class="text-xs text-slate-600 mt-1">แสดง {{ displayedOrders().length }} จาก {{ orders().length }} รายการ</p>
+            <h2 class="font-bold text-slate-800 flex items-center gap-2">
+                <span>รายการ Order ทั้งหมด</span>
+                <span class="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-semibold">{{ orders().length }} ออเดอร์</span>
+            </h2>
+            <p class="text-xs text-slate-500 mt-1">แสดง {{ displayedOrders().length }} จาก {{ orders().length }} รายการ (เงื่อนไขไม่เกิน 3 กล่อง/ออเดอร์)</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
             <button type="button" (click)="generateSampleOrders()" [disabled]="!canGenerateSamples() || isSaving()"
-                class="px-3 py-2 bg-sky-700 hover:bg-sky-800 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition">
-                {{ isSaving() ? 'กำลังดำเนินการ...' : 'สร้าง Order จำลอง 30 รายการ' }}
+                class="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white text-xs sm:text-sm font-semibold rounded-xl transition shadow-xs flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                </svg>
+                <span>{{ isSaving() ? 'กำลังจำลอง...' : 'สุ่ม Order 20–30 รายการ' }}</span>
             </button>
             <button type="button" (click)="deleteAllOrders()" [disabled]="isSaving() || orders().length === 0"
-                class="px-3 py-2 bg-rose-50 hover:bg-rose-100 disabled:opacity-50 text-rose-800 border border-rose-200 text-sm font-semibold rounded-xl transition">
-                ล้างข้อมูล Order ทั้งหมด
+                class="px-3 py-2 bg-rose-50 hover:bg-rose-100 disabled:opacity-50 text-rose-700 border border-rose-200 text-xs sm:text-sm font-semibold rounded-xl transition">
+                ล้างข้อมูลทั้งหมด
             </button>
             <button type="button" (click)="openAddModal()" [disabled]="customers().length === 0 || isSaving()"
-                class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition">
-                เพิ่ม Order
+                class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs sm:text-sm font-semibold rounded-xl transition shadow-xs flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                <span>เพิ่ม Order</span>
             </button>
         </div>
     </div>
 
-    <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex flex-wrap items-end gap-3">
-        <div>
-            <label for="search-latitude" class="block text-xs font-semibold text-slate-700 mb-1.5">ละติจูดจุดค้นหา</label>
-            <input id="search-latitude" type="number" min="-90" max="90" step="any" [ngModel]="searchLatitude()"
-                (ngModelChange)="setSearchLatitude($event)" class="w-40 max-w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-mono" />
+    <!-- แถบกรองพิกัดเรดาร์ 2 กม. แบบใหม่ (ใช้ง่าย มี Dropdown สถานที่สำคัญ และปุ่มลัด) -->
+    <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 space-y-2.5 text-xs">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2 text-slate-800 font-semibold">
+                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <span>กรอง Order ในรัศมี 2 กม. จากตำแหน่งที่เลือก</span>
+            </div>
+            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">รัศมี 2 กม.</span>
         </div>
-        <div>
-            <label for="search-longitude" class="block text-xs font-semibold text-slate-700 mb-1.5">ลองจิจูดจุดค้นหา</label>
-            <input id="search-longitude" type="number" min="-180" max="180" step="any" [ngModel]="searchLongitude()"
-                (ngModelChange)="setSearchLongitude($event)" class="w-40 max-w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-mono" />
+
+        <div class="flex flex-col sm:flex-row gap-2">
+            <!-- เมนูเลือกสถานที่สำคัญรอบ มมส. -->
+            <div class="flex-1">
+                <select 
+                    [ngModel]="selectedLandmark()"
+                    (ngModelChange)="onSelectLandmark($event)"
+                    class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    <option value="" disabled>-- เลือกสถานที่สำคัญรอบ มมส. เพื่อกรอง Order --</option>
+                    @for (item of MSU_LANDMARKS; track item.name) {
+                    <option [value]="item.name">
+                        {{ item.name }} ({{ item.category }})
+                    </option>
+                    }
+                </select>
+            </div>
+
+            <div class="flex gap-1.5 shrink-0">
+                <!-- ปุ่มลัด: ตำแหน่งร้าน -->
+                <button 
+                    type="button"
+                    (click)="useShopLocation()"
+                    title="ค้นหารอบครัวร้านเดลิเวอรี"
+                    class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 text-xs font-semibold rounded-xl transition flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    </svg>
+                    <span>ตำแหน่งร้าน</span>
+                </button>
+
+                <!-- ปุ่มลัด: GPS ปัจจุบัน -->
+                <button 
+                    type="button"
+                    (click)="useCurrentLocation()"
+                    title="ค้นหารอบตำแหน่งปัจจุบันของคุณ"
+                    class="px-2.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold rounded-xl transition flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0013 3.06V1h-2v2.06A8.994 8.994 0 003.06 11H1v2h2.06A8.994 8.994 0 0011 20.94V23h2v-2.06A8.994 8.994 0 0020.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+                    </svg>
+                </button>
+
+                <!-- ปุ่มล้างค่ารีเซ็ต -->
+                <button 
+                    type="button"
+                    (click)="clearNearbyFilter()" 
+                    [disabled]="!isNearbyFilterActive()"
+                    title="ล้างตัวกรองและแสดง Order ทั้งหมด"
+                    class="px-3 py-2 bg-white hover:bg-slate-100 disabled:opacity-40 text-slate-700 border border-slate-200 text-xs font-semibold rounded-xl transition">
+                    แสดงทั้งหมด
+                </button>
+            </div>
         </div>
-        <button type="button" (click)="applyNearbyFilter()"
-            class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold rounded-lg transition">
-            ค้นหาในระยะ 2 กม.
-        </button>
-        <button type="button" (click)="clearNearbyFilter()" [disabled]="!isNearbyFilterActive()"
-            class="px-3 py-2 bg-white hover:bg-slate-100 disabled:opacity-50 text-slate-700 border border-slate-200 text-sm font-semibold rounded-lg transition">
-            แสดงทั้งหมด
-        </button>
+
+        <!-- แถบแสดงสถานะเรดาร์ปัจจุบัน -->
+        <div class="flex items-center justify-between text-slate-500 pt-0.5">
+            <div>
+                @if (selectedLandmark()) {
+                <span class="text-emerald-700 font-semibold">
+                    ✓ กำลังแสดง Order ในรัศมี 2 กม. จาก: {{ selectedLandmark() }}
+                </span>
+                } @else if (isNearbyFilterActive()) {
+                <span class="text-emerald-700 font-semibold">
+                    ✓ กำลังแสดง Order ในรัศมี 2 กม. จากพิกัดที่กำหนด
+                </span>
+                } @else {
+                <span>เลือกสถานที่ด้านบนเพื่อกรองดูเฉพาะ Order ที่อยู่ในรัศมี 2 กม.</span>
+                }
+            </div>
+
+            <button 
+                type="button" 
+                (click)="toggleManualCoords()"
+                class="text-[11px] text-slate-500 hover:text-slate-800 underline">
+                {{ showManualCoords() ? 'ซ่อนช่องระบุตัวเลข' : 'ระบุตัวเลข Lat/Lng เอง' }}
+            </button>
+        </div>
+
+        <!-- ช่องใส่ตัวเลข Lat/Lng แบบละเอียด (ซ่อนไว้เป็นทางเลือกเสริม) -->
+        @if (showManualCoords()) {
+        <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 pt-2 border-t border-slate-200 animate-in fade-in duration-150">
+            <input 
+                type="number" 
+                min="-90" max="90" step="any"
+                [ngModel]="searchLatitude()" 
+                (ngModelChange)="setSearchLatitude($event)"
+                placeholder="Latitude เช่น 16.2468" 
+                class="sm:col-span-2 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            />
+            <input 
+                type="number" 
+                min="-180" max="180" step="any"
+                [ngModel]="searchLongitude()" 
+                (ngModelChange)="setSearchLongitude($event)"
+                placeholder="Longitude เช่น 103.2519" 
+                class="sm:col-span-2 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            />
+            <button 
+                (click)="applyNearbyFilter()" 
+                class="sm:col-span-1 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg transition">
+                ค้นหา
+            </button>
+        </div>
+        }
     </div>
 
     @if (errorMessage()) {
-    <p role="alert" class="px-6 py-3 bg-rose-50 text-rose-800 text-sm">{{ errorMessage() }}</p>
+    <p role="alert" class="px-6 py-2.5 bg-rose-50 text-rose-800 text-xs font-medium">{{ errorMessage() }}</p>
     }
 
     <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm text-slate-600">
-            <thead class="bg-emerald-50/50 border-b border-emerald-100 text-emerald-950 font-bold text-xs">
+        <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold uppercase tracking-wider text-[11px]">
                 <tr>
-                    <th scope="col" class="px-6 py-4">Order ID</th>
-                    <th scope="col" class="px-6 py-4">วันที่สั่ง</th>
-                    <th scope="col" class="px-6 py-4">ลูกค้า</th>
-                    <th scope="col" class="px-6 py-4 text-center">จำนวนกล่อง</th>
-                    <th scope="col" class="px-6 py-4">พิกัดจัดส่ง (Lat, Lng)</th>
+                    <th scope="col" class="px-5 py-3.5">Order ID</th>
+                    <th scope="col" class="px-5 py-3.5">วันที่สั่ง</th>
+                    <th scope="col" class="px-5 py-3.5">ลูกค้า</th>
+                    <th scope="col" class="px-5 py-3.5 text-center">จำนวนกล่อง</th>
+                    <th scope="col" class="px-5 py-3.5">สถานะ</th>
+                    <th scope="col" class="px-5 py-3.5">พิกัดจัดส่ง</th>
                     @if (isNearbyFilterActive()) {
-                    <th scope="col" class="px-6 py-4 text-right">ระยะห่าง</th>
+                    <th scope="col" class="px-5 py-3.5 text-right">ระยะห่าง</th>
                     }
-                    <th scope="col" class="px-6 py-4 text-center">จัดการ</th>
+                    <th scope="col" class="px-5 py-3.5 text-center">จัดการ</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
                 @if (isLoading()) {
                 <tr>
-                    <td [attr.colspan]="isNearbyFilterActive() ? 7 : 6" class="px-6 py-10 text-center">กำลังโหลด Order...</td>
+                    <td [attr.colspan]="isNearbyFilterActive() ? 8 : 7" class="px-6 py-10 text-center text-slate-500">
+                        กำลังโหลดข้อมูล Order...
+                    </td>
                 </tr>
                 } @else if (displayedOrders().length === 0) {
                 <tr>
-                    <td [attr.colspan]="isNearbyFilterActive() ? 7 : 6" class="px-6 py-10 text-center">
-                        {{ isNearbyFilterActive() ? 'ไม่พบ Order ในระยะ 2 กม. จากพิกัดนี้' : 'ยังไม่มี Order ในระบบ' }}
+                    <td [attr.colspan]="isNearbyFilterActive() ? 8 : 7" class="px-6 py-10 text-center text-slate-500">
+                        {{ isNearbyFilterActive() ? 'ไม่พบ Order ในระยะ 2 กม. จากพิกัดนี้' : 'ยังไม่มี Order ในระบบ (กดปุ่มสุ่ม Order 20–30 รายการเพื่อเริ่มทดสอบ)' }}
                     </td>
                 </tr>
                 } @else {
                 @for (order of displayedOrders(); track order.order_id) {
-                <tr class="hover:bg-emerald-50/30 transition-colors">
-                    <td class="px-6 py-4 font-mono font-semibold text-emerald-800 text-xs">#{{ order.order_id }}</td>
-                    <td class="px-6 py-4">{{ order.order_date | date:'dd/MM/yyyy' }}</td>
-                    <td class="px-6 py-4 font-medium text-slate-900">{{ getCustomerName(order.customer_id) }}</td>
-                    <td class="px-6 py-4 text-center">{{ order.box_count }}</td>
-                    <td class="px-6 py-4 font-mono text-xs">{{ order.delivery_lat }}, {{ order.delivery_lng }}</td>
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-5 py-3 font-mono font-bold text-slate-900">#{{ order.order_id }}</td>
+                    <td class="px-5 py-3">{{ order.order_date | date:'dd/MM/yyyy' }}</td>
+                    <td class="px-5 py-3 font-medium text-slate-900">{{ getCustomerName(order.customer_id) }}</td>
+                    <td class="px-5 py-3 text-center">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200">
+                            {{ order.box_quantity || order.box_count || 1 }} กล่อง
+                        </span>
+                    </td>
+                    <td class="px-5 py-3">
+                        @if (order.order_status === 'delivered') {
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> ส่งสำเร็จ
+                        </span>
+                        } @else if (order.order_status === 'assigned') {
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-800 border border-slate-200">
+                            <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span> จัดสายส่งแล้ว
+                        </span>
+                        } @else {
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> รอดำเนินการ
+                        </span>
+                        }
+                    </td>
+                    <td class="px-5 py-3 font-mono text-[11px] text-slate-500">{{ order.delivery_lat }}, {{ order.delivery_lng }}</td>
                     @if (isNearbyFilterActive()) {
-                    <td class="px-6 py-4 text-right">{{ getDistanceFromSearchCenter(order) | number:'1.2-2' }} กม.</td>
+                    <td class="px-5 py-3 text-right font-medium text-emerald-700">{{ getDistanceFromSearchCenter(order) | number:'1.2-2' }} กม.</td>
                     }
-                    <td class="px-6 py-4 text-center">
+                    <td class="px-5 py-3 text-center">
                         <div class="inline-flex items-center gap-1.5">
                             <button type="button" (click)="openEditModal(order)"
-                                class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-xs font-semibold transition">
+                                class="px-2.5 py-1 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-[11px] font-semibold transition">
                                 แก้ไข
                             </button>
                             <button type="button" (click)="deleteOrder(order.order_id)"
-                                class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 rounded-lg text-xs font-semibold transition">
+                                class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-semibold transition">
                                 ลบ
                             </button>
                         </div>
@@ -102,25 +229,26 @@
     </div>
 </section>
 
+<!-- Modal เพิ่ม/แก้ไข Order -->
 @if (isModalOpen()) {
 <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
     <section role="dialog" aria-modal="true" aria-labelledby="order-dialog-title"
-        class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-5 border border-slate-100">
+        class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-4 border border-slate-100">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-            <h2 id="order-dialog-title" class="text-lg font-bold text-slate-900">
-                {{ isEditing() ? 'แก้ไข Order' : 'เพิ่ม Order' }}
+            <h2 id="order-dialog-title" class="text-base font-bold text-slate-900">
+                {{ isEditing() ? 'แก้ไข Order' : 'เพิ่ม Order ใหม่' }}
             </h2>
             <button type="button" (click)="closeModal()" aria-label="ปิดหน้าต่าง"
-                class="text-slate-500 hover:text-slate-800">✕</button>
+                class="text-slate-400 hover:text-slate-700 font-bold">✕</button>
         </div>
 
-        <form (ngSubmit)="saveOrder()" class="space-y-4">
+        <form (ngSubmit)="saveOrder()" class="space-y-4 text-xs">
             <div>
-                <label for="order-customer" class="block text-xs font-semibold text-slate-700 mb-1.5">ลูกค้า</label>
+                <label for="order-customer" class="block font-semibold text-slate-700 mb-1">ลูกค้าผู้สั่ง</label>
                 <select id="order-customer" name="customer_id" required [ngModel]="currentOrder().customer_id"
                     (ngModelChange)="setCustomerId($event)"
-                    class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                    <option [ngValue]="0" disabled>เลือกลูกค้า</option>
+                    class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    <option [ngValue]="0" disabled>-- เลือกลูกค้า --</option>
                     @for (customer of customers(); track customer.customer_id) {
                     <option [ngValue]="customer.customer_id">
                         {{ customer.first_name }} {{ customer.last_name }} (#{{ customer.customer_id }})
@@ -128,49 +256,52 @@
                     }
                 </select>
                 @if (customers().length === 0) {
-                <p class="mt-1 text-xs text-rose-800">ไม่พบข้อมูลลูกค้า กรุณาเพิ่มลูกค้าก่อนสร้าง Order</p>
+                <p class="mt-1 text-rose-800">ไม่พบข้อมูลลูกค้า กรุณาเพิ่มลูกค้าก่อนสร้าง Order</p>
                 }
             </div>
 
-            <div>
-                <label for="order-date" class="block text-xs font-semibold text-slate-700 mb-1.5">วันที่สั่ง</label>
-                <input id="order-date" type="date" name="order_date" required [ngModel]="currentOrder().order_date"
-                    (ngModelChange)="setOrderDate($event)"
-                    class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
-            </div>
-
-            <div>
-                <label for="order-box-count" class="block text-xs font-semibold text-slate-700 mb-1.5">จำนวนกล่อง</label>
-                <input id="order-box-count" type="number" min="1" step="1" name="box_count" required
-                    [ngModel]="currentOrder().box_count" (ngModelChange)="setBoxCount($event)"
-                    class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label for="order-lat" class="block text-xs font-semibold text-slate-700 mb-1.5">Delivery
-                        Latitude</label>
-                    <input id="order-lat" type="number" min="-90" max="90" step="any" name="delivery_lat" required
-                        [ngModel]="currentOrder().delivery_lat" (ngModelChange)="setDeliveryLat($event)"
-                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+                    <label for="order-date" class="block font-semibold text-slate-700 mb-1">วันที่สั่ง</label>
+                    <input id="order-date" type="date" name="order_date" required [ngModel]="currentOrder().order_date"
+                        (ngModelChange)="setOrderDate($event)"
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
                 </div>
                 <div>
-                    <label for="order-lng" class="block text-xs font-semibold text-slate-700 mb-1.5">Delivery
-                        Longitude</label>
+                    <label for="order-box-count" class="block font-semibold text-slate-700 mb-1">
+                        จำนวนกล่อง <span class="text-emerald-600 font-normal">(1-3 กล่อง)</span>
+                    </label>
+                    <input id="order-box-count" type="number" min="1" max="3" step="1" name="box_quantity" required
+                        [ngModel]="currentOrder().box_quantity || currentOrder().box_count || 1"
+                        (ngModelChange)="setBoxQuantity($event)"
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none font-bold text-slate-900" />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label for="order-lat" class="block font-semibold text-slate-700 mb-1">Delivery Latitude</label>
+                    <input id="order-lat" type="number" min="-90" max="90" step="any" name="delivery_lat" required
+                        [ngModel]="currentOrder().delivery_lat" (ngModelChange)="setDeliveryLat($event)"
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+                </div>
+                <div>
+                    <label for="order-lng" class="block font-semibold text-slate-700 mb-1">Delivery Longitude</label>
                     <input id="order-lng" type="number" min="-180" max="180" step="any" name="delivery_lng" required
                         [ngModel]="currentOrder().delivery_lng" (ngModelChange)="setDeliveryLng($event)"
-                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
                 </div>
             </div>
 
             @if (errorMessage()) {
-            <p role="alert" class="text-sm text-rose-800">{{ errorMessage() }}</p>
+            <p role="alert" class="text-rose-800 font-medium">{{ errorMessage() }}</p>
             }
 
             <div class="flex justify-end gap-2 pt-2">
                 <button type="button" (click)="closeModal()"
-                    class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-medium rounded-xl transition">ยกเลิก</button>
+                    class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition">ยกเลิก</button>
                 <button type="submit" [disabled]="isSaving() || customers().length === 0"
-                    class="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition">
+                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-semibold rounded-xl transition shadow-xs">
                     {{ isSaving() ? 'กำลังบันทึก...' : 'บันทึก Order' }}
                 </button>
             </div>
