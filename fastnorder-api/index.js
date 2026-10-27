@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql2/promise');
+const createAuthRouter = require('./auth'); // ← เพิ่ม
 
 const app = express();
 const port = 3000;
@@ -20,6 +21,8 @@ const pool = mysql.createPool({
     connectionLimit: 10,
     queueLimit: 0
 });
+
+app.use('/api', createAuthRouter(pool)); // ← เพิ่ม (login / register)
 
 app.get('/', (req, res) => {
     res.send('FastNorder API is running perfectly!');

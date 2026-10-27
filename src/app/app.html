@@ -1,3 +1,6 @@
+@if (isLoginPage) {
+<router-outlet />
+} @else {
 <div class="min-h-screen bg-slate-50 text-slate-800 pb-16 font-sans antialiased">
 
   <!-- Top Navigation Bar สไตล์ Modern Delivery App (Clean, No Emojis) -->
@@ -47,6 +50,12 @@
           }
         </button>
       </div>
+
+      <!-- ปุ่มออกจากระบบ -->
+      <button type="button" (click)="logout()"
+        class="px-3 py-1.5 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-xl hover:bg-rose-100 transition">
+        ออกจากระบบ
+      </button>
 
     </div>
 
@@ -395,3 +404,4 @@
   </div>
 
 </div>
+}

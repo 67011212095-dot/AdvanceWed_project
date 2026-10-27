@@ -1,6 +1,9 @@
 import { Component, OnInit, inject, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router, RouterOutlet, NavigationEnd } from '@angular/router'; // ← เพิ่ม
+import { filter } from 'rxjs'; // ← เพิ่ม
+import { Auth } from './services/auth'; // ← เพิ่ม
 import { CustomerService } from './services/customer';
 import { Customer } from './models/customer.model';
 import { Order } from './models/order.model';
@@ -21,15 +24,28 @@ export interface LandmarkPreset {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule, Orders, DispatchConsole, RiderView],
+  imports: [CommonModule, FormsModule, Orders, DispatchConsole, RiderView, RouterOutlet], // ← เพิ่ม RouterOutlet
   templateUrl: './app.html'
 })
 export class App implements OnInit {
   private readonly customerService = inject(CustomerService);
   private readonly orderService = inject(OrderService);
   readonly dispatchService = inject(DispatchService);
+  private readonly router = inject(Router); // ← เพิ่ม
+  private readonly auth = inject(Auth); // ← เพิ่ม
   private map!: L.Map;
   private marker!: L.Marker;
+
+  // ← เพิ่ม: เช็กว่าอยู่หน้า login หรือไม่
+  get isLoginPage(): boolean {
+    return this.router.url.startsWith('/login') || this.router.url === '/';
+  }
+
+  // ← เพิ่ม: ออกจากระบบ
+  logout(): void {
+    this.auth.logout();
+    this.router.navigate(['/login']);
+  }
 
   // การนำทางหลัก
   activeRole: 'owner' | 'rider' = 'owner';
@@ -68,9 +84,16 @@ export class App implements OnInit {
   isEditing: boolean = false;
   currentCustomer: Customer = this.getEmptyCustomer();
 
+  // ← แก้: โหลดข้อมูลเมื่อเข้าหน้าหลัก (ไม่ยิง API ตอนอยู่หน้า login)
   ngOnInit(): void {
-    this.loadCustomers();
-    this.loadOrders();
+    this.router.events
+      .pipe(filter((e) => e instanceof NavigationEnd))
+      .subscribe(() => {
+        if (this.isLoginPage) return;
+        this.activeRole = this.router.url.startsWith('/rider') ? 'rider' : 'owner';
+        this.loadCustomers();
+        this.loadOrders();
+      });
   }
 
   isNearbyFilterActive(): boolean {
@@ -312,5 +335,3 @@ export class App implements OnInit {
     }
   }
 }
-
-
