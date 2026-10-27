@@ -25,7 +25,8 @@
         </div>
       </div>
 
-      <!-- สลับบทบาทผู้ใช้งาน (Role Switcher: เจ้าของร้าน vs ไรเดอร์) -->
+      <!-- สลับบทบาทผู้ใช้งาน (แสดงเฉพาะเมื่อล็อกอินเป็นเจ้าของร้าน dispatch) -->
+      @if (isDispatch) {
       <div class="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200 text-xs font-bold">
         <button type="button" (click)="activeRole = 'owner'"
           class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl transition-all"
@@ -50,6 +51,7 @@
           }
         </button>
       </div>
+      }
 
       <!-- ปุ่มออกจากระบบ -->
       <button type="button" (click)="logout()"
