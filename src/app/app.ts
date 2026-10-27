@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CustomerService } from './services/customer';
@@ -9,6 +9,7 @@ import { DispatchService, KITCHEN_LOCATION } from './services/dispatch.service';
 import { Orders } from './orders/orders';
 import { DispatchConsole } from './dispatch/dispatch-console';
 import { RiderView } from './rider/rider-view';
+import * as L from 'leaflet';
 
 export interface LandmarkPreset {
   name: string;
@@ -27,6 +28,8 @@ export class App implements OnInit {
   private readonly customerService = inject(CustomerService);
   private readonly orderService = inject(OrderService);
   readonly dispatchService = inject(DispatchService);
+  private map!: L.Map;
+  private marker!: L.Marker;
 
   // การนำทางหลัก
   activeRole: 'owner' | 'rider' = 'owner';
@@ -68,6 +71,25 @@ export class App implements OnInit {
   ngOnInit(): void {
     this.loadCustomers();
     this.loadOrders();
+  }
+
+  isNearbyFilterActive(): boolean {
+    return this.searchLat !== null && this.searchLng !== null;
+  }
+
+  //  เพิ่มฟังก์ชันนี้เข้าไปใน app_4.ts เพื่อคำนวณระยะทางแบบเดียวกับหน้า Order
+  getCustomerDistance(customer: Customer): number {
+    if (this.searchLat === null || this.searchLng === null || !customer.latitude || !customer.longitude) {
+      return 0;
+    }
+    const toRadians = (degrees: number) => degrees * Math.PI / 180;
+    const latitudeDifference = toRadians(customer.latitude - this.searchLat);
+    const longitudeDifference = toRadians(customer.longitude - this.searchLng);
+    const haversine = Math.sin(latitudeDifference / 2) ** 2
+      + Math.cos(toRadians(this.searchLat)) * Math.cos(toRadians(customer.latitude))
+      * Math.sin(longitudeDifference / 2) ** 2;
+
+    return 6371 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
   }
 
   getEmptyCustomer(): Customer {
@@ -202,6 +224,7 @@ export class App implements OnInit {
     this.isEditing = false;
     this.currentCustomer = this.getEmptyCustomer();
     this.isModalOpen = true;
+    this.initMapWithDelay();
   }
 
   // เปิด Modal แก้ไขข้อมูลลูกค้า
@@ -209,6 +232,48 @@ export class App implements OnInit {
     this.isEditing = true;
     this.currentCustomer = { ...customer };
     this.isModalOpen = true;
+    this.initMapWithDelay();
+  }
+
+  private initMapWithDelay(): void {
+    setTimeout(() => {
+      this.initMap();
+    }, 100);
+  }
+
+  private initMap(): void {
+    // ล้างแผนที่เก่าถ้ามีการเปิด Modal ซ้ำ
+    if (this.map) {
+      this.map.remove();
+    }
+
+    const lat = this.currentCustomer.latitude || 16.2468;
+    const lng = this.currentCustomer.longitude || 103.2519;
+
+    this.map = L.map('customer-map').setView([lat, lng], 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    }).addTo(this.map);
+
+    const icon = L.icon({
+      iconUrl: '/assets/marker-icon.png',
+      iconSize: [40, 40],
+      iconAnchor: [20, 50]
+    });
+
+    this.marker = L.marker([lat, lng], { icon }).addTo(this.map);
+
+    // ดักจับการคลิกเพื่อเปลี่ยนค่าพิกัดของ currentCustomer
+    this.map.on('click', (e: L.LeafletMouseEvent) => {
+      const clickedLat = e.latlng.lat;
+      const clickedLng = e.latlng.lng;
+      this.marker.setLatLng([clickedLat, clickedLng]);
+
+      // อัปเดตค่าลงใน Object โดยตรงเพื่อให้หน้าจออัปเดตตาม
+      this.currentCustomer.latitude = clickedLat;
+      this.currentCustomer.longitude = clickedLng;
+    });
   }
 
   closeModal(): void {
@@ -247,3 +312,5 @@ export class App implements OnInit {
     }
   }
 }
+
+

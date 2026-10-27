@@ -8,13 +8,6 @@ import { Order } from './order.model';
 import { OrderService } from './order.service';
 import { DispatchService, KITCHEN_LOCATION } from '../services/dispatch.service';
 
-export interface LandmarkPreset {
-    name: string;
-    category: string;
-    lat: number;
-    lng: number;
-}
-
 @Component({
     selector: 'app-orders',
     standalone: true,
@@ -31,26 +24,38 @@ export class Orders implements OnInit {
     readonly orders = this.orderService.orders;
     readonly customers = signal<Customer[]>([]);
 
-    readonly MSU_LANDMARKS: LandmarkPreset[] = [
-        { name: 'ครัวร้านเดลิเวอรี (จุดเริ่มต้นส่ง)', category: 'ร้านอาหาร', lat: 16.2468, lng: 103.2519 },
-        { name: 'หอพักตักศิลา (หน้าป้าย มมส.)', category: 'หอพัก', lat: 16.2492, lng: 103.2541 },
-        { name: 'คณะวิทยาการสารสนเทศ (IT)', category: 'มหาวิทยาลัย', lat: 16.2451, lng: 103.2560 },
-        { name: 'คณะวิศวกรรมศาสตร์', category: 'มหาวิทยาลัย', lat: 16.2478, lng: 103.2485 },
-        { name: 'อาคารราชนครินทร์ (RN)', category: 'มหาวิทยาลัย', lat: 16.2510, lng: 103.2530 },
-        { name: 'หอพักอินเตอร์', category: 'หอพัก', lat: 16.2435, lng: 103.2502 },
-        { name: 'หอพักเจริญสุข', category: 'หอพัก', lat: 16.2420, lng: 103.2575 },
-        { name: 'คอนโดเดอะแคปิตอล', category: 'คอนโด', lat: 16.2440, lng: 103.2450 },
-        { name: 'ศูนย์อาหารขามเรียง', category: 'ชุมชน', lat: 16.2415, lng: 103.2525 }
-    ];
-
     readonly selectedLandmark = signal<string>('');
     readonly showManualCoords = signal<boolean>(false);
+    readonly isLoading = signal(false);
+    readonly isSaving = signal(false);
+    readonly isModalOpen = signal(false);
+    readonly isEditing = signal(false);
+    readonly errorMessage = signal('');
+    readonly currentOrder = signal<Order>(this.getEmptyOrder());
+    readonly searchLatitude = signal<number | null>(null);
+    readonly searchLongitude = signal<number | null>(null);
+    readonly isNearbyFilterActive = signal(false);
+    readonly searchTerm = signal<string>('');
 
+    // คำนวณการแสดงผล Order (รองรับทั้ง ค้นหาชื่อ/ID และ ตัวกรองระยะทาง 2 กม.)
     readonly displayedOrders = computed(() => {
-        const orders = this.orders();
+        let orders = this.orders();
+        const search = this.searchTerm().trim().toLowerCase();
         const latitude = this.searchLatitude();
         const longitude = this.searchLongitude();
 
+        // 1. กรองด้วยคำค้นหา (ชื่อลูกค้า หรือ Order ID)
+        if (search) {
+            orders = orders.filter((order) => {
+                const customerName = this.getCustomerName(order.customer_id).toLowerCase();
+                const orderId = `#${order.order_id || ''}`.toLowerCase();
+                const rawOrderId = `${order.order_id || ''}`.toLowerCase();
+
+                return customerName.includes(search) || orderId.includes(search) || rawOrderId.includes(search);
+            });
+        }
+
+        // 2. กรองด้วยพิกัดเรดาร์ 2 กม. (ถ้ากดใช้งาน)
         if (!this.isNearbyFilterActive() || latitude === null || longitude === null) {
             return orders;
         }
@@ -63,16 +68,6 @@ export class Orders implements OnInit {
     readonly canGenerateSamples = computed(() =>
         this.customers().some((customer) => customer.customer_id !== undefined)
     );
-
-    readonly isLoading = signal(false);
-    readonly isSaving = signal(false);
-    readonly isModalOpen = signal(false);
-    readonly isEditing = signal(false);
-    readonly errorMessage = signal('');
-    readonly currentOrder = signal<Order>(this.getEmptyOrder());
-    readonly searchLatitude = signal<number | null>(null);
-    readonly searchLongitude = signal<number | null>(null);
-    readonly isNearbyFilterActive = signal(false);
 
     ngOnInit(): void {
         this.loadOrders();
@@ -98,6 +93,10 @@ export class Orders implements OnInit {
             delivery_lat: KITCHEN_LOCATION.lat,
             delivery_lng: KITCHEN_LOCATION.lng
         };
+    }
+
+    setSearchTerm(value: string): void {
+        this.searchTerm.set(value);
     }
 
     loadOrders(): void {
@@ -159,16 +158,6 @@ export class Orders implements OnInit {
         this.searchLongitude.set(value);
     }
 
-    onSelectLandmark(landmarkName: string): void {
-        const item = this.MSU_LANDMARKS.find((l) => l.name === landmarkName);
-        if (item) {
-            this.searchLatitude.set(item.lat);
-            this.searchLongitude.set(item.lng);
-            this.selectedLandmark.set(item.name);
-            this.applyNearbyFilter();
-        }
-    }
-
     useShopLocation(): void {
         this.searchLatitude.set(KITCHEN_LOCATION.lat);
         this.searchLongitude.set(KITCHEN_LOCATION.lng);
@@ -188,7 +177,7 @@ export class Orders implements OnInit {
                     this.applyNearbyFilter();
                 },
                 () => {
-                    this.errorMessage.set('ไม่สามารถอ่านพิกัด GPS ได้ กรุณาเลือกสถานที่สำคัญ');
+                    this.errorMessage.set('ไม่สามารถอ่านพิกัด GPS ได้');
                 }
             );
         } else {
@@ -204,7 +193,7 @@ export class Orders implements OnInit {
         const latitude = this.searchLatitude();
         const longitude = this.searchLongitude();
         if (latitude === null || longitude === null || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
-            this.errorMessage.set('กรุณาเลือกสถานที่ หรือระบุพิกัดละติจูดและลองจิจูดให้ถูกต้อง');
+            this.errorMessage.set('กรุณาระบุพิกัดละติจูดและลองจิจูดให้ถูกต้อง');
             return;
         }
 
@@ -314,11 +303,10 @@ export class Orders implements OnInit {
             return;
         }
 
-        // สุ่ม 20 - 30 รายการตามโจทย์ (แต่ละรายการสั่งไม่เกิน 3 กล่อง)
         const numberOfOrders = 20 + Math.floor(Math.random() * 11);
         const sampleOrders: Order[] = Array.from({ length: numberOfOrders }, () => {
             const customer = customers[Math.floor(Math.random() * customers.length)];
-            const boxQty = 1 + Math.floor(Math.random() * 3); // 1-3 กล่อง
+            const boxQty = 1 + Math.floor(Math.random() * 3);
             return {
                 customer_id: customer.customer_id,
                 order_date: this.getRandomOrderDate(),

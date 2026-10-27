@@ -15,7 +15,7 @@ import {
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import * as L from 'leaflet';
-import { Order } from '../models/order.model';
+import { Order } from '../orders/order.model';
 import { Customer } from '../models/customer.model';
 import { DeliveryJob } from '../models/delivery-job.model';
 import { DispatchService, KITCHEN_LOCATION } from '../services/dispatch.service';
@@ -31,7 +31,7 @@ import { DispatchService, KITCHEN_LOCATION } from '../services/dispatch.service'
 export class DispatchConsole implements AfterViewInit, OnChanges, OnDestroy {
   readonly dispatchService = inject(DispatchService);
 
-  @Input() orders: Order[] = [];
+  @Input() orders: any[] = [];
   @Input() customers: Customer[] = [];
   @Output() viewRiderJob = new EventEmitter<number>();
 
@@ -102,7 +102,7 @@ export class DispatchConsole implements AfterViewInit, OnChanges, OnDestroy {
     this.viewRiderJob.emit(jobId);
   }
 
-  private renderMapRoutes(): void {
+  private async renderMapRoutes(): Promise<void> {
     if (!this.map || !this.layerGroup) return;
 
     this.layerGroup.clearLayers();
@@ -113,7 +113,7 @@ export class DispatchConsole implements AfterViewInit, OnChanges, OnDestroy {
       KITCHEN_LOCATION.lng
     ]);
 
-    // ปักหมุดร้าน / ครัว
+    // 1. ปักหมุดร้าน / ครัว
     const kitchenIcon = L.divIcon({
       className: '',
       html: `
@@ -140,22 +140,24 @@ export class DispatchConsole implements AfterViewInit, OnChanges, OnDestroy {
 
     this.layerGroup.addLayer(kitchenMarker);
 
-    // ปักหมุดและลากเส้นแต่ละ Job
+    // 2. ปักหมุดและวาดเส้นทางตามถนนจริงสำหรับแต่ละ Job
     const displayJobs = this.selectedJobId
       ? jobs.filter((j) => j.job_id === this.selectedJobId)
       : jobs;
 
     for (const job of displayJobs) {
       const isSelected = this.selectedJobId === job.job_id;
-      const routePoints: L.LatLngExpression[] = [
-        [KITCHEN_LOCATION.lat, KITCHEN_LOCATION.lng]
+
+      // สร้างลำดับพิกัด: [ลองจิจูด, ละติจูด] สำหรับเรียก OSRM API (OSRM ใช้ lng,lat)
+      const waypoints = [
+        `${KITCHEN_LOCATION.lng},${KITCHEN_LOCATION.lat}`,
+        ...job.orders.map((o: any) => `${o.delivery_lng},${o.delivery_lat}`)
       ];
 
+      // ปักหมุดจุดส่งลูกค้า
       for (const order of job.orders) {
-        routePoints.push([order.delivery_lat, order.delivery_lng]);
         bounds.extend([order.delivery_lat, order.delivery_lng]);
 
-        // หมุดจุดส่งพร้อมตัวเลข 1, 2, 3
         const stopIcon = L.divIcon({
           className: '',
           html: `
@@ -200,25 +202,57 @@ export class DispatchConsole implements AfterViewInit, OnChanges, OnDestroy {
         this.layerGroup.addLayer(stopMarker);
       }
 
-      // วาดเส้น Polyline ลากจากร้านไปจุดส่งตามลำดับ
-      const polyline = L.polyline(routePoints, {
-        color: job.route_color,
-        weight: isSelected ? 6 : 4,
-        opacity: isSelected ? 0.95 : 0.75,
-        dashArray: isSelected ? undefined : '6, 6'
-      });
+      // ดึงเส้นทางวิ่งตามถนนจริงจาก OSRM API
+      try {
+        const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${waypoints.join(';')}?overview=full&geometries=geojson`;
+        const response = await fetch(osrmUrl);
+        const data = await response.json();
 
-      polyline.bindTooltip(
-        `${job.rider_name} (${job.total_boxes} กล่อง, ${job.total_distance} กม.)`,
-        { sticky: true }
-      );
+        if (data.routes && data.routes.length > 0) {
+          // แปลงพิกัดจาก GeoJSON [lng, lat] เป็น Leaflet [lat, lng]
+          const roadCoordinates: L.LatLngExpression[] = data.routes[0].geometry.coordinates.map(
+            (coord: [number, number]) => [coord[1], coord[0]]
+          );
 
-      this.layerGroup.addLayer(polyline);
+          const polyline = L.polyline(roadCoordinates, {
+            color: job.route_color,
+            weight: isSelected ? 6 : 4,
+            opacity: isSelected ? 0.95 : 0.8
+          });
+
+          polyline.bindTooltip(
+            `${job.rider_name} (${job.total_boxes} กล่อง, ${job.total_distance} กม.)`,
+            { sticky: true }
+          );
+
+          this.layerGroup.addLayer(polyline);
+        } else {
+          // กรณี API ล้มเหลว ให้ใช้วาดเส้นตรงสำรอง
+          this.drawFallbackPolyline(job, isSelected);
+        }
+      } catch (error) {
+        console.warn('OSRM Route fetch failed, using fallback straight lines:', error);
+        this.drawFallbackPolyline(job, isSelected);
+      }
     }
 
     if (displayJobs.length > 0) {
       this.map.fitBounds(bounds, { padding: [40, 40] });
     }
   }
-}
 
+  private drawFallbackPolyline(job: DeliveryJob, isSelected: boolean): void {
+    if (!this.layerGroup) return;
+    const fallbackPoints: L.LatLngExpression[] = [
+      [KITCHEN_LOCATION.lat, KITCHEN_LOCATION.lng],
+      ...job.orders.map((o: any) => [o.delivery_lat, o.delivery_lng] as L.LatLngExpression)
+    ];
+    const polyline = L.polyline(fallbackPoints, {
+      color: job.route_color,
+      weight: isSelected ? 6 : 4,
+      opacity: isSelected ? 0.95 : 0.75,
+      dashArray: '6, 6'
+    });
+    this.layerGroup.addLayer(polyline);
+  }
+}
