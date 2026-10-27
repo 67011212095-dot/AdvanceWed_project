@@ -14,7 +14,7 @@ export interface RegisterPayload {
   role: 'dispatch' | 'rider';
 }
 
-interface MockUser extends RegisterPayload {}
+interface MockUser extends RegisterPayload { }
 
 
 const USE_MOCK = false;
@@ -22,9 +22,9 @@ const MOCK_USERS_KEY = 'mock_users';
 
 @Injectable({ providedIn: 'root' })
 export class Auth {
-  private api = 'http://localhost:3000/api'; 
+  private api = 'http://localhost:3000/api';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   // ---------- Login ----------
   login(username: string, password: string): Observable<LoginResponse> {
@@ -47,9 +47,10 @@ export class Auth {
       : this.http.post(`${this.api}/register`, payload);
   }
 
+  // src/app/services/auth.ts
+
   logout(): void {
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
+    localStorage.clear(); // ล้างข้อมูลการเข้าสู่ระบบทั้งหมด (ทั้ง token และ role)
   }
 
   get isLoggedIn(): boolean {

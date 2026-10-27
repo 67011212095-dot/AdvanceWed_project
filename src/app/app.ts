@@ -84,13 +84,26 @@ export class App implements OnInit {
   isEditing: boolean = false;
   currentCustomer: Customer = this.getEmptyCustomer();
 
-  // ← แก้: โหลดข้อมูลเมื่อเข้าหน้าหลัก (ไม่ยิง API ตอนอยู่หน้า login)
+
+  get isDispatch(): boolean {
+    return localStorage.getItem('role') === 'dispatch';
+  }
+
   ngOnInit(): void {
     this.router.events
       .pipe(filter((e) => e instanceof NavigationEnd))
       .subscribe(() => {
         if (this.isLoginPage) return;
-        this.activeRole = this.router.url.startsWith('/rider') ? 'rider' : 'owner';
+
+        const role = localStorage.getItem('role');
+
+        // ถ้าเป็นไรเดอร์ บังคับให้เป็น 'rider' เสมอ ห้ามเปลี่ยนเป็น 'owner'
+        if (role === 'rider') {
+          this.activeRole = 'rider';
+        } else {
+          this.activeRole = this.router.url.startsWith('/rider') ? 'rider' : 'owner';
+        }
+
         this.loadCustomers();
         this.loadOrders();
       });

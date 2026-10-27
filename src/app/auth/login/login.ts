@@ -45,18 +45,23 @@ export class Login {
   }
 
   private login(): void {
-    this.loading = true;
-    this.auth.login(this.username.trim(), this.password).subscribe({
-      next: (res) => {
-        this.loading = false;
-        this.router.navigate([res.role === 'rider' ? '/rider' : '/dispatch']);
-      },
-      error: () => {
-        this.loading = false;
-        this.error = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
-      },
-    });
-  }
+  this.loading = true;
+  this.auth.login(this.username.trim(), this.password).subscribe({
+    next: (res) => {
+      this.loading = false;
+      
+      // บันทึก Token และ Role เข้า LocalStorage
+      localStorage.setItem('token', res.token);
+      localStorage.setItem('role', res.role);
+
+      this.router.navigate([res.role === 'rider' ? '/rider' : '/dispatch']);
+    },
+    error: () => {
+      this.loading = false;
+      this.error = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+    },
+  });
+}
 
   private register(): void {
     if (this.password.length < 4) {
