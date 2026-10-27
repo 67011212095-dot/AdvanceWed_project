@@ -6,7 +6,7 @@ import { Order } from './order.model';
 @Injectable({ providedIn: 'root' })
 export class OrderService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:3000/api/orders';
+  private readonly apiUrl = 'https://advancewed-project.onrender.com/api/orders';
   private localOrders: Order[] = [];
 
   // Reactive Signal ที่แชร์ข้อมูลออเดอร์ให้ทุก Component เสมอ
