@@ -12,6 +12,8 @@ import { DispatchService, KITCHEN_LOCATION } from './services/dispatch.service';
 import { Orders } from './orders/orders';
 import { DispatchConsole } from './dispatch/dispatch-console';
 import { RiderView } from './rider/rider-view';
+import { RiderManagement } from './riders/rider-management';
+import { RiderService } from './services/rider.service';
 import * as L from 'leaflet';
 
 export interface LandmarkPreset {
@@ -24,13 +26,14 @@ export interface LandmarkPreset {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule, Orders, DispatchConsole, RiderView, RouterOutlet], // ← เพิ่ม RouterOutlet
+  imports: [CommonModule, FormsModule, Orders, DispatchConsole, RiderView, RiderManagement, RouterOutlet], // ← เพิ่ม RouterOutlet
   templateUrl: './app.html'
 })
 export class App implements OnInit {
   private readonly customerService = inject(CustomerService);
   private readonly orderService = inject(OrderService);
   readonly dispatchService = inject(DispatchService);
+  readonly riderService = inject(RiderService);
   private readonly router = inject(Router); // ← เพิ่ม
   private readonly auth = inject(Auth); // ← เพิ่ม
   private map!: L.Map;
@@ -49,7 +52,7 @@ export class App implements OnInit {
 
   // การนำทางหลัก
   activeRole: 'owner' | 'rider' = 'owner';
-  ownerTab: 'dispatch' | 'orders' | 'customers' = 'dispatch';
+  ownerTab: 'dispatch' | 'orders' | 'customers' | 'riders' = 'dispatch';
   selectedRiderJobId: number | null = null;
 
   // ข้อมูลลูกค้าและออเดอร์
@@ -167,6 +170,17 @@ export class App implements OnInit {
     this.selectedRiderJobId = jobId;
     this.activeRole = 'rider';
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // รายชื่อไรเดอร์เปลี่ยน: ถ้าจัดเส้นทางไว้แล้วให้แจกงานใหม่ตามรายชื่อล่าสุด
+  onRidersChanged(): void {
+    if (this.dispatchService.deliveryJobs().length > 0 && this.orders.length > 0) {
+      this.dispatchService.optimizeRoutes(
+        this.orders,
+        this.customers,
+        this.dispatchService.activeAlternativeIndex()
+      );
+    }
   }
 
   // ค้นหาลูกค้าจากส่วนหนึ่งของชื่อ หรือนามสกุล

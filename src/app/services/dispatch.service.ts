@@ -1,28 +1,14 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { Order, OrderStatus } from '../models/order.model';
 import { DeliveryJob } from '../models/delivery-job.model';
 import { Customer } from '../models/customer.model';
+import { RiderService } from './rider.service';
 
 export const KITCHEN_LOCATION = {
   lat: 16.2468,
   lng: 103.2519,
   name: 'ครัวร้านข้าวกล่องเดลิเวอรี (ส่งด่วนมื้อเที่ยง มมส.)'
 };
-
-const RIDER_NAMES = [
-  'ไรเดอร์ สมชาย (คันที่ 1)',
-  'ไรเดอร์ วิชัย (คันที่ 2)',
-  'ไรเดอร์ ธีรศักดิ์ (คันที่ 3)',
-  'ไรเดอร์ อนุชา (คันที่ 4)',
-  'ไรเดอร์ เอกพล (คันที่ 5)',
-  'ไรเดอร์ ชัยรัตน์ (คันที่ 6)',
-  'ไรเดอร์ ณัฐพล (คันที่ 7)',
-  'ไรเดอร์ ปิยะ (คันที่ 8)',
-  'ไรเดอร์ กิตติศักดิ์ (คันที่ 9)',
-  'ไรเดอร์ ธนกร (คันที่ 10)',
-  'ไรเดอร์ วรวุฒิ (คันที่ 11)',
-  'ไรเดอร์ สุริยา (คันที่ 12)'
-];
 
 const ROUTE_COLORS = [
   '#EF4444', // แดง
@@ -43,6 +29,8 @@ const ROUTE_COLORS = [
   providedIn: 'root'
 })
 export class DispatchService {
+  private readonly riderService = inject(RiderService);
+
   // สัญญาณเก็บรายการ Jobs ที่จัดเส้นทางแล้ว
   readonly deliveryJobs = signal<DeliveryJob[]>([]);
   readonly activeAlternativeIndex = signal<number>(0);
@@ -185,9 +173,17 @@ export class DispatchService {
     }
 
     // สร้าง DeliveryJob สำหรับแต่ละกลุ่ม
+    // แจกงานให้ไรเดอร์ตามรายชื่อในหน้า "จัดการไรเดอร์" วนไปเรื่อยๆ
+    // ถ้าใบงานมากกว่าจำนวนไรเดอร์ คนเดิมจะได้รอบที่ 2, 3, ...
+    const riders = this.riderService.riders();
     const jobs: DeliveryJob[] = clusters.map((clusterOrders, index) => {
       const jobId = 1001 + index;
-      const riderName = RIDER_NAMES[index % RIDER_NAMES.length];
+      let riderName = 'ยังไม่มีไรเดอร์ (เพิ่มในหน้าจัดการไรเดอร์)';
+      if (riders.length > 0) {
+        const rider = riders[index % riders.length];
+        const round = Math.floor(index / riders.length) + 1;
+        riderName = `ไรเดอร์ ${rider.name}` + (round > 1 ? ` (รอบที่ ${round})` : '');
+      }
       const routeColor = ROUTE_COLORS[index % ROUTE_COLORS.length];
 
       // จัดลำดับจุดส่งให้สั้นที่สุด (Kitchen -> Nearest 1 -> Nearest 2 -> Nearest 3)
