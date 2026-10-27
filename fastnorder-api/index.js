@@ -5,10 +5,14 @@ const mysql = require('mysql2/promise');
 const createAuthRouter = require('./auth'); 
 
 const app = express();
-const port = 3000;
-
-app.use(cors());
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 app.use(express.json());
+
+const cors = require('cors');
+app.use(cors()); 
 
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
@@ -203,8 +207,4 @@ app.delete('/api/orders/:id', async (req, res) => {
     } finally {
         conn.release();
     }
-});
-
-app.listen(port, () => {
-    console.log(`Server is running at http://localhost:${port}`);
 });
