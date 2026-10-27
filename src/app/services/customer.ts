@@ -22,10 +22,10 @@ const DEMO_CUSTOMERS: Customer[] = [
   providedIn: 'root',
 })
 export class CustomerService {
-  private apiUrl = 'http://localhost:3000/api/customers';
+  private apiUrl = 'https://advancewed-project.onrender.com/api/customers';
   private localCustomers: Customer[] = [...DEMO_CUSTOMERS];
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   getCustomers(): Observable<Customer[]> {
     return this.http.get<Customer[]>(this.apiUrl).pipe(
@@ -65,9 +65,9 @@ export class CustomerService {
           const a =
             Math.sin(dLat / 2) * Math.sin(dLat / 2) +
             Math.cos(lat * (Math.PI / 180)) *
-              Math.cos(c.latitude * (Math.PI / 180)) *
-              Math.sin(dLon / 2) *
-              Math.sin(dLon / 2);
+            Math.cos(c.latitude * (Math.PI / 180)) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
           const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
           return dist <= 1;
         });
