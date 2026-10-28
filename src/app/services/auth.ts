@@ -22,7 +22,7 @@ const MOCK_USERS_KEY = 'mock_users';
 
 @Injectable({ providedIn: 'root' })
 export class Auth {
-  private api = 'http://localhost:3000/api';
+  private api = 'https://advancewed-project.onrender.com/api';
 
   constructor(private http: HttpClient) { }
 
