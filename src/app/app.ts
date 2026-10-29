@@ -16,6 +16,9 @@ import { RiderManagement } from './riders/rider-management';
 import { RiderService } from './services/rider.service';
 import * as L from 'leaflet';
 
+// ระยะส่งสูงสุดจากร้าน (กม.) ปักหมุดลูกค้าเกินนี้จะบันทึกไม่ได้
+export const MAX_DELIVERY_KM = 3;
+
 export interface LandmarkPreset {
   name: string;
   category: string;
@@ -86,6 +89,21 @@ export class App implements OnInit {
   isModalOpen: boolean = false;
   isEditing: boolean = false;
   currentCustomer: Customer = this.getEmptyCustomer();
+  readonly maxDeliveryKm = MAX_DELIVERY_KM;
+
+  // ระยะจากร้านถึงหมุดลูกค้าที่กำลังเพิ่ม/แก้ไข (กม.)
+  get customerDistanceKm(): number {
+    return this.dispatchService.getDistanceKm(
+      KITCHEN_LOCATION.lat,
+      KITCHEN_LOCATION.lng,
+      this.currentCustomer.latitude,
+      this.currentCustomer.longitude
+    );
+  }
+
+  get isCustomerOutOfRange(): boolean {
+    return this.customerDistanceKm > MAX_DELIVERY_KM;
+  }
 
 
   get isDispatch(): boolean {
@@ -300,11 +318,27 @@ export class App implements OnInit {
     const lat = this.currentCustomer.latitude || 16.2468;
     const lng = this.currentCustomer.longitude || 103.2519;
 
-    this.map = L.map('customer-map').setView([lat, lng], 15);
+    this.map = L.map('customer-map').setView([lat, lng], 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap'
     }).addTo(this.map);
+
+    // วงกลมแสดงพื้นที่ส่งได้ (รัศมี 3 กม. จากร้าน)
+    L.circle([KITCHEN_LOCATION.lat, KITCHEN_LOCATION.lng], {
+      radius: MAX_DELIVERY_KM * 1000,
+      color: '#059669',
+      weight: 2,
+      fillOpacity: 0.06
+    }).addTo(this.map);
+    L.circleMarker([KITCHEN_LOCATION.lat, KITCHEN_LOCATION.lng], {
+      radius: 6,
+      color: '#047857',
+      fillColor: '#047857',
+      fillOpacity: 1
+    })
+      .bindTooltip('ร้าน')
+      .addTo(this.map);
 
     const icon = L.icon({
       iconUrl: '/assets/marker-icon.png',
@@ -332,6 +366,13 @@ export class App implements OnInit {
 
   // บันทึกข้อมูลลูกค้า (Add / Edit)
   saveCustomer(): void {
+    if (this.isCustomerOutOfRange) {
+      alert(
+        `หมุดอยู่ห่างร้าน ${this.customerDistanceKm.toFixed(2)} กม. เกิน ${MAX_DELIVERY_KM} กม. ` +
+        'กรุณาปักหมุดใหม่ภายในวงกลมสีเขียว'
+      );
+      return;
+    }
     if (this.isEditing && this.currentCustomer.customer_id) {
       this.customerService.updateCustomer(this.currentCustomer.customer_id, this.currentCustomer).subscribe({
         next: () => {

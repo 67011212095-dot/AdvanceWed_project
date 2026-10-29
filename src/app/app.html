@@ -405,6 +405,15 @@
               <p>Lat: {{ currentCustomer.latitude | number:'1.6-6' }}</p>
               <p>Lng: {{ currentCustomer.longitude | number:'1.6-6' }}</p>
             </div>
+            <p class="mt-2 font-semibold"
+              [ngClass]="isCustomerOutOfRange ? 'text-rose-700' : 'text-emerald-700'">
+              ห่างร้าน {{ customerDistanceKm | number:'1.2-2' }} กม.
+              @if (isCustomerOutOfRange) {
+              · เกิน {{ maxDeliveryKm }} กม. บันทึกไม่ได้ กรุณาปักหมุดในวงกลมสีเขียว
+              } @else {
+              · อยู่ในระยะส่ง (ไม่เกิน {{ maxDeliveryKm }} กม.)
+              }
+            </p>
           </div>
         </div>
 
@@ -413,8 +422,8 @@
             class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition">
             ยกเลิก
           </button>
-          <button type="submit"
-            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-semibold rounded-xl shadow-xs transition">
+          <button type="submit" [disabled]="isCustomerOutOfRange"
+            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-semibold rounded-xl shadow-xs transition disabled:bg-slate-300 disabled:cursor-not-allowed disabled:active:scale-100">
             บันทึกข้อมูล
           </button>
         </div>
